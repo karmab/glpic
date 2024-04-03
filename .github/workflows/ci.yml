@@ -1,0 +1,32 @@
+name: GLPIC-CI
+on: [push, pull_request]
+
+env:
+ QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+ QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+ PYPI_USERNAME: ${{ secrets.PYPI_USERNAME }}
+ PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+ PYTHONUNBUFFERED: true
+
+jobs:
+
+  run-workflow:
+    name: Workflow
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v2
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman
+          sudo pip3 install prettytable
+        shell: bash
+      - if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository_owner == 'karmab'
+        name: Release PYPI
+        run: .github/pypi.sh
+        shell: bash
+      - if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository_owner == 'karmab'
+        name: Build/Push Container
+        run: .github/container.sh
+        shell: bash

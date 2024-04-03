@@ -1,0 +1,4 @@
+build
+dist
+glpi.egg-info
+glpi.env
