@@ -1,10 +1,11 @@
 import argparse
 from argparse import RawDescriptionHelpFormatter as rawhelp
-from prettytable import PrettyTable
-import os
-import sys
 from glpic import Glpic
 from glpic import error, handle_parameters, info
+import os
+from prettytable import PrettyTable
+import sys
+from textwrap import fill
 
 PARAMHELP = "specify parameter or keyword for rendering (multiple can be specified)"
 
@@ -93,8 +94,9 @@ def list_computers(args):
 def list_reservations(args):
     glpic = Glpic(args.url, args.user, args.token, args.debug)
     reservationstable = PrettyTable(["Id", "Item", "Begin", "End", "Comment"])
-    for reservation in glpic.list_reservations():
+    for reservation in glpic.list_reservations(overrides=handle_parameters(args.param)):
         _id, begin, end, comment = reservation['id'], reservation['begin'], reservation['end'], reservation['comment']
+        comment = fill(comment, width=100)
         reservation_id = reservation['reservationitems_id']
         computer_id = glpic.info_reservation(reservation_id)['items_id']
         reservation_name = glpic.info_computer(computer_id, full=True)['name']
@@ -172,6 +174,7 @@ def cli():
     reservationlist_desc = 'List Reservations'
     reservationlist_parser = argparse.ArgumentParser(add_help=False)
     reservationlist_parser.set_defaults(func=list_reservations)
+    reservationlist_parser.add_argument('-P', '--param', action='append', help=PARAMHELP, metavar='PARAM')
     list_subparsers.add_parser('reservation', parents=[reservationlist_parser], description=reservationlist_desc,
                                help=reservationlist_desc, aliases=['reservations'])
 

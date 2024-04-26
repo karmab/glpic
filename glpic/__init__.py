@@ -124,10 +124,12 @@ class Glpic(object):
         response = _get(f'{base_url}/initSession?get_full_session=true', headers)
         self.headers = {'Content-Type': 'application/json', "Session-Token": response['session_token']}
 
-    def get_user(self, user):
+    def get_user(self, user=None):
+        if user is None:
+            user = self.user
         users = _get(f'{self.base_url}/User', headers=self.headers)
         for u in users:
-            if self.user in u['name']:
+            if user in u['name']:
                 return u
 
     def info_computer(self, computer, full=False):
@@ -174,9 +176,10 @@ class Glpic(object):
     def info_reservation(self, reservation):
         return _get(f'{self.base_url}/ReservationItem/{reservation}', headers=self.headers)
 
-    def list_reservations(self):
+    def list_reservations(self, overrides={}):
+        user = overrides.get('user') or self.user
         response = _get(f'{self.base_url}/Reservation', headers=self.headers)
-        user_id = self.get_user(self.user)['id']
+        user_id = self.get_user(user)['id']
         return [r for r in response if r['users_id'] == user_id]
 
     def list_computers(self, user=None, overrides={}):
