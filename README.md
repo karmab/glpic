@@ -12,6 +12,12 @@ This repo contains code for a lightweight client to interact with GLPI
 
 store your creds in any env file such as [glpic.env.sample](glpic.env.sample) and set data accordingly
 
+# Installation
+
+```
+pip3 install glpic
+```
+
 # How to use
 
 ```
