@@ -118,7 +118,7 @@ class Glpic(object):
     def __init__(self, base_url, user, api_token, debug=False):
         self.debug = debug
         self.base_url = base_url
-        self.user = user
+        self.user = user.split('@')[0]
         ssl._create_default_https_context = ssl._create_unverified_context
         headers = {'Content-Type': 'application/json', 'Authorization': f"user_token {api_token}"}
         response = _get(f'{base_url}/initSession?get_full_session=true', headers)
