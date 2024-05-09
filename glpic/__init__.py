@@ -133,49 +133,43 @@ class Glpic(object):
             if user in u['name']:
                 return u
 
-    def info_computer(self, computer, full=False):
-        computers = _get(f'{self.base_url}/Computer?with_devices', headers=self.headers)
-        if not str(computer).isnumeric():
-            computers = [c for c in _get(f'{self.base_url}/Computer?with_devices',
-                                         headers=self.headers) if c['name'].strip() == computer]
-            if computers:
-                result = computers[0]
-            else:
-                error(f"Computer {computer} not found")
-                return {}
+    def get_options(self, item_type):
+        search_options = {}
+        all_options = _get(f'{self.base_url}/listSearchOptions/{item_type}', headers=self.headers)
+        for key in all_options:
+            if key.isnumeric():
+                search_options[all_options[key]['uid']] = key
+        return search_options
+
+    def info_computer(self, overrides={}):
+        computer = overrides.get('computer')
+        if computer is not None:
+            field = 2 if isinstance(computer, int) or computer.isnumeric() else 1
+            search_data = "criteria[0][link]=AND&criteria[0][itemtype]=Computer"
+            search_data = f"&criteria[0][field]={field}&criteria[0][searchtype]=contains"
+            search_data += f"&criteria[0][value]={computer}"
         else:
-            result = _get(f'{self.base_url}/Computer/{computer}?with_devices', headers=self.headers)
-        if full:
-            return result
-        info = {'id': result['id'], 'name': result['name'], 'serial': result['serial']}
-        if result['comment'] not in ['', 'None']:
-            info['comment'] = result['comment']
-        for link in result['links']:
-            if link['rel'] == 'ComputerModel':
-                info['model'] = _get(link['href'], headers=self.headers)['name']
-            if link['rel'] == 'Manufacturer':
-                info['manufacturer'] = _get(link['href'], headers=self.headers)['name']
-            if link['rel'] == 'Item_DeviceProcessor':
-                processor = _get(link['href'], headers=self.headers)[0]
-                info['processor'] = f"{processor['nbcores']} cores and {processor['nbthreads']} threads"
-            if link['rel'] == 'Item_DeviceMemory':
-                memory = 0
-                memory_data = _get(link['href'], headers=self.headers)
-                if memory_data and 'links' in memory_data[0]:
-                    memory_links = memory_data[0]['links']
-                    for memory_link in memory_links:
-                        if memory_link['rel'] == 'DeviceMemory':
-                            new_memory = _get(memory_link['href'], headers=self.headers)
-                            memory += new_memory['size_default']
-                if memory > 0:
-                    info['memory'] = memory
-            if link['rel'] == 'ReservationItem':
-                # reservation = _get(link['href'], headers=self.headers)[0]
-                info['reserved'] = True
-        return info
+            search_options = self.get_options('Computer')
+            search_data = ''
+            for index, key in enumerate(overrides):
+                value = overrides[key]
+                if not key.startswith('Computer'):
+                    key = f'Computer.{key}'
+                if key not in search_options:
+                    warning("Invalid key {key}")
+                    continue
+                key_id = search_options[key]
+                search_data += "criteria[{index}][link]=AND&criteria[{index}][itemtype]=Computer"
+                search_data = f"&criteria[{index}][field]={key_id}&criteria[{index}][searchtype]=contains"
+                search_data += f"&criteria[{index}][value]={value}"
+        url = f'{self.base_url}/search/Computer?{search_data}&uid_cols'
+        if overrides.get('uid', False):
+            url += '&forcedisplay[0]=2'
+        computers = _get(url, headers=self.headers)
+        return computers['data'] if 'data' in computers else []
 
     def info_reservation(self, reservation):
-        return _get(f'{self.base_url}/Reservation/{reservation}', headers=self.headers)
+        return _get(f'{self.base_url}/ReservationItem/{reservation}', headers=self.headers)
 
     def list_reservations(self, overrides={}):
         user = overrides.get('user') or self.user
@@ -184,57 +178,55 @@ class Glpic(object):
         return [r for r in response if r['users_id'] == user_id]
 
     def list_computers(self, user=None, overrides={}):
-        computers = _get(f'{self.base_url}/Computer?with_devices', headers=self.headers)
+        computers = _get(f'{self.base_url}/search/Computer?uid_cols', headers=self.headers)['data']
         if not overrides:
             return computers
         results = []
         memory = overrides.get('memory')
-        numcpus = overrides.get('numcpus')
-        number = overrides.get('number', 3)
+        cpu_model = overrides.get('cpumodel')
+        number = overrides.get('number')
         for computer in computers:
-            for link in computer['links']:
-                if numcpus is not None and link['rel'] == 'Item_DeviceProcessor':
-                    processor = _get(link['href'], headers=self.headers)[0]
-                    current_numcpus = processor['nbcores']
-                if memory is not None and link['rel'] == 'Item_DeviceMemory':
-                    current_memory = 0
-                    memory_data = _get(link['href'], headers=self.headers)
-                    if memory_data and 'links' in memory_data[0]:
-                        memory_links = memory_data[0]['links']
-                        for memory_link in memory_links:
-                            if memory_link['rel'] == 'DeviceMemory':
-                                new_memory = _get(memory_link['href'], headers=self.headers)
-                                current_memory += new_memory['size_default']
-            if numcpus is not None and current_numcpus < int(numcpus):
+            current_cpu_model = computer['Computer.Item_DeviceProcessor.DeviceProcessor.designation'] or 'XXX'
+            if isinstance(current_cpu_model, list):
+                current_cpu_model = current_cpu_model[0]
+            if cpu_model is not None and cpu_model.lower() not in current_cpu_model.lower():
                 continue
-            if memory is not None and current_memory < int(memory):
+            current_memory = computer['Computer.Item_DeviceMemory.size'] or '0'
+            if memory is not None and int(float(current_memory)) < int(memory):
                 continue
             results.append(computer)
-            if len(results) >= number:
+            if number is not None and len(results) >= int(number):
                 break
         return results
 
-    def create_reservation(self, reservation, overrides):
-        valid_keys = list(_get(f'{self.base_url}/Reservation/', self.headers)[0].keys())
-        wrong_keys = [key for key in overrides if key not in valid_keys]
-        if wrong_keys:
-            error(f"Ignoring keys {','.join(wrong_keys)}")
-            for key in wrong_keys:
-                del overrides[key]
-        # post = {"reservationitems_id": reservation_id, "begin": begin, "end": end, "users_id": user_id,
-        #        "comment": f'reservation for {self.user}'}
+    def create_reservation(self, computer, overrides):
+        overrides['begin'] = parse(str(date.today())).strftime('%Y-%m-%d 00:00:00')
+        if 'end' not in overrides:
+            overrides['end'] = date.today() + timedelta(days=30)
+        user = overrides.get('user', self.user)
+        if 'user_id' not in overrides:
+            user_id = self.get_user(user)['id']
+            overrides['user_id'] = user_id
+        overrides['end'] = parse(str(overrides['end'])).strftime('%Y-%m-%d 00:00:00')
+        if 'comment' not in overrides:
+            overrides['comment'] = f'reservation for {user}'
+        reservation_id = self.info_computer({'computer': computer, 'uid': True})[0]['Computer.id']
+        overrides['reservationitems_id'] = reservation_id
+        # valid_keys = list(_get(f'{self.base_url}/Reservation/', self.headers)[0].keys())
+        # wrong_keys = [key for key in overrides if key not in valid_keys]
+        # if wrong_keys:
+        #    error(f"Ignoring keys {','.join(wrong_keys)}")
+        #    for key in wrong_keys:
+        #        del overrides[key]
         if not overrides:
             info("Nothing to create")
             return
-        if 'end' not in overrides:
-            overrides['end'] = date.today() + timedelta(days=30)
-        overrides['end'] = parse(str(overrides['end'])).strftime('%Y-%m-%d 00:00:00')
         data = {'input': overrides}
         if self.debug:
             base_curl = curl_base(self.headers)
-            msg = f"{base_curl} -X POST -Lk {self.base_url}/Reservation/{reservation} -d \"{json.dumps(data)}\""
+            msg = f"{base_curl} -X POST -Lk {self.base_url}/Reservation -d \"{json.dumps(data)}\""
             print(msg)
-        return _post(f'{self.base_url}/Reservation/{reservation}', self.headers, data)
+        return _post(f'{self.base_url}/Reservation', self.headers, data)
 
     def delete_reservation(self, reservation):
         if self.debug:

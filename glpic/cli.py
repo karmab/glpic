@@ -53,7 +53,13 @@ def get_subparser(parser, subcommand):
 
 
 def create_reservation(args):
-    print("TODO")
+    glpic = Glpic(args.url, args.user, args.token, args.debug)
+    overrides = handle_parameters(args.param)
+    computer = args.computer or overrides.get('computer')
+    if computer is None:
+        error("Missing computer")
+        sys.exit(1)
+    glpic.create_reservation(computer, overrides)
 
 
 def delete_reservation(args):
@@ -75,9 +81,13 @@ def update_reservation(args):
 
 def info_computer(args):
     glpic = Glpic(args.url, args.user, args.token, args.debug)
-    data = glpic.info_computer(args.computer, args.full)
-    for key in data:
-        print(f"{key}: {data[key]}")
+    overrides = {'computer': args.computer} if args.computer is not None else {}
+    overrides.update(handle_parameters(args.param))
+    data = glpic.info_computer(overrides)
+    for computer in data:
+        for key in computer:
+            print(f"{key}: {computer[key]}")
+        print('-----------------')
 
 
 def info_reservation(args):
@@ -89,11 +99,13 @@ def info_reservation(args):
 
 def list_computers(args):
     glpic = Glpic(args.url, args.user, args.token, args.debug)
-    computerstable = PrettyTable(["Id", "Name", "Group", "Serial", "Comment"])
+    computerstable = PrettyTable(["Name", "Group", "Serial", "Model", "Memory", "Bmc"])
     for computer in glpic.list_computers(overrides=handle_parameters(args.param)):
-        _id, group, = computer['id'], computer['groups_id_tech']
-        name, serial, comment = computer['name'], computer['serial'], computer['comment']
-        entry = [_id, name, group, serial, comment]
+        name, serial = computer['Computer.name'], computer['Computer.serial']
+        group, memory = computer['Computer.Group.completename'], computer['Computer.Item_DeviceMemory.size']
+        bmc = computer['Computer.PluginFieldsComputerbmcaddre.bmcaddressfield']
+        model = computer['Computer.ComputerModel.name']
+        entry = [name, group, serial, model, memory, bmc]
         computerstable.add_row(entry)
     print(computerstable)
 
@@ -106,7 +118,7 @@ def list_reservations(args):
         comment = fill(comment, width=100)
         reservation_id = reservation['reservationitems_id']
         computer_id = glpic.info_reservation(reservation_id)['items_id']
-        reservation_name = glpic.info_computer(computer_id, full=True)['name']
+        reservation_name = glpic.info_computer({'computer': computer_id})[0]['Computer.name']
         entry = [_id, reservation_name, begin, end, comment]
         reservationstable.add_row(entry)
     print(reservationstable)
@@ -136,7 +148,7 @@ def cli():
     reservationcreate_parser.add_argument('-f', '--force', action='store_true',
                                           help='Delete existing reservation if needed')
     reservationcreate_parser.add_argument('-P', '--param', action='append', help=PARAMHELP, metavar='PARAM')
-    reservationcreate_parser.add_argument('reservation', metavar='RESERVATION')
+    reservationcreate_parser.add_argument('computer', metavar='COMPUTER', nargs='?')
     reservationcreate_parser.set_defaults(func=create_reservation)
 
     delete_desc = 'Delete Object'
@@ -163,8 +175,8 @@ def cli():
     computerinfo_epilog = None
     computerinfo_parser = info_subparsers.add_parser('computer', description=computerinfo_desc, help=computerinfo_desc,
                                                      epilog=computerinfo_epilog, formatter_class=rawhelp)
-    computerinfo_parser.add_argument('-f', '--full', action='store_true')
-    computerinfo_parser.add_argument('computer', metavar='COMPUTER')
+    computerinfo_parser.add_argument('-P', '--param', action='append', help=PARAMHELP, metavar='PARAM')
+    computerinfo_parser.add_argument('computer', metavar='COMPUTER', nargs='?')
     computerinfo_parser.set_defaults(func=info_computer)
 
     reservationinfo_desc = 'Info Reservation'
