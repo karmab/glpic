@@ -1,6 +1,7 @@
 from ast import literal_eval
 from dateutil.parser import parse
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
+from dateutil.relativedelta import relativedelta
 import json
 import ssl
 import os
@@ -249,8 +250,10 @@ class Glpic(object):
             for key in wrong_keys:
                 del overrides[key]
         if not overrides:
-            info("Nothing to update")
-            return
+            date_after_month = datetime.today() + relativedelta(months=1)
+            new_date = date_after_month.strftime('%Y-%m-%d 00:00:00')
+            warning(f"Setting end date to {new_date}")
+            overrides['end'] = new_date
         if 'end' in overrides:
             overrides['end'] = parse(str(overrides['end'])).strftime('%Y-%m-%d 00:00:00')
         new_user = overrides.get('user') or overrides.get('users_id')
