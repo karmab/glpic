@@ -175,7 +175,7 @@ class Glpic(object):
         return info
 
     def info_reservation(self, reservation):
-        return _get(f'{self.base_url}/ReservationItem/{reservation}', headers=self.headers)
+        return _get(f'{self.base_url}/Reservation/{reservation}', headers=self.headers)
 
     def list_reservations(self, overrides={}):
         user = overrides.get('user') or self.user

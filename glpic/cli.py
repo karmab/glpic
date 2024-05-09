@@ -80,6 +80,13 @@ def info_computer(args):
         print(f"{key}: {data[key]}")
 
 
+def info_reservation(args):
+    glpic = Glpic(args.url, args.user, args.token, args.debug)
+    data = glpic.info_reservation(args.reservation)
+    for key in data:
+        print(f"{key}: {data[key]}")
+
+
 def list_computers(args):
     glpic = Glpic(args.url, args.user, args.token, args.debug)
     computerstable = PrettyTable(["Id", "Name", "Group", "Serial", "Comment"])
@@ -159,6 +166,14 @@ def cli():
     computerinfo_parser.add_argument('-f', '--full', action='store_true')
     computerinfo_parser.add_argument('computer', metavar='COMPUTER')
     computerinfo_parser.set_defaults(func=info_computer)
+
+    reservationinfo_desc = 'Info Reservation'
+    reservationinfo_epilog = None
+    reservationinfo_parser = info_subparsers.add_parser('reservation', description=reservationinfo_desc,
+                                                        help=reservationinfo_desc,
+                                                        epilog=reservationinfo_epilog, formatter_class=rawhelp)
+    reservationinfo_parser.add_argument('reservation', metavar='RESERVATION')
+    reservationinfo_parser.set_defaults(func=info_reservation)
 
     list_desc = 'List Object'
     list_parser = subparsers.add_parser('list', description=list_desc, help=list_desc, aliases=['get'])
