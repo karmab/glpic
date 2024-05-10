@@ -200,31 +200,32 @@ class Glpic(object):
         return results
 
     def create_reservation(self, computer, overrides):
-        overrides['begin'] = parse(str(date.today())).strftime('%Y-%m-%d 00:00:00')
+        overrides['begin'] = parse(str(datetime.now())).strftime('%Y-%m-%d %H:%M:%S')
         if 'end' not in overrides:
             overrides['end'] = date.today() + timedelta(days=30)
         user = overrides.get('user', self.user)
-        if 'user_id' not in overrides:
+        if 'users_id' not in overrides:
             user_id = self.get_user(user)['id']
-            overrides['user_id'] = user_id
+            overrides['users_id'] = user_id
         overrides['end'] = parse(str(overrides['end'])).strftime('%Y-%m-%d 00:00:00')
         if 'comment' not in overrides:
             overrides['comment'] = f'reservation for {user}'
-        reservation_id = self.info_computer({'computer': computer, 'uid': True})[0]['Computer.id']
-        overrides['reservationitems_id'] = reservation_id
-        # valid_keys = list(_get(f'{self.base_url}/Reservation/', self.headers)[0].keys())
-        # wrong_keys = [key for key in overrides if key not in valid_keys]
-        # if wrong_keys:
-        #    error(f"Ignoring keys {','.join(wrong_keys)}")
-        #    for key in wrong_keys:
-        #        del overrides[key]
+        computer_id = self.info_computer({'computer': computer, 'uid': True})[0]['Computer.id']
+        reservationitem_id = self.get_reservation_item_id(computer_id)
+        overrides['reservationitems_id'] = reservationitem_id
+        valid_keys = list(_get(f'{self.base_url}/Reservation/', self.headers)[0].keys())
+        wrong_keys = [key for key in overrides if key not in valid_keys]
+        if wrong_keys:
+            error(f"Ignoring keys {','.join(wrong_keys)}")
+            for key in wrong_keys:
+                del overrides[key]
         if not overrides:
             info("Nothing to create")
             return
         data = {'input': overrides}
         if self.debug:
             base_curl = curl_base(self.headers)
-            msg = f"{base_curl} -X POST -Lk {self.base_url}/Reservation -d \"{json.dumps(data)}\""
+            msg = f"{base_curl} -X POST -Lk {self.base_url}/Reservation -d '{json.dumps(data)}'"
             print(msg)
         return _post(f'{self.base_url}/Reservation', self.headers, data)
 
@@ -256,7 +257,14 @@ class Glpic(object):
         data = {'input': overrides}
         if self.debug:
             base_curl = curl_base(self.headers)
-            msg = f"{base_curl} -X PUT -Lk {self.base_url}/Reservation/{reservation} -d \"{json.dumps(data)}\""
+            msg = f"{base_curl} -X PUT -Lk {self.base_url}/Reservation/{reservation} -d '{json.dumps(data)}'"
             print(msg)
         result = _put(f'{self.base_url}/Reservation/{reservation}', self.headers, data)
         return result
+
+    def get_reservation_item_id(self, computer_id):
+        url = f'{self.base_url}/ReservationItem?uid_cols'
+        reservation_items = _get(url, headers=self.headers)
+        for entry in reservation_items:
+            if entry['itemtype'] == 'Computer' and entry['items_id'] == computer_id:
+                return entry['id']
