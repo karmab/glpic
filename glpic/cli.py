@@ -59,6 +59,7 @@ def create_reservation(args):
     if computer is None:
         error("Missing computer")
         sys.exit(1)
+    info(f"Creating reservation for computer {computer}")
     glpic.create_reservation(computer, overrides)
 
 
@@ -69,6 +70,7 @@ def delete_reservation(args):
         confirm("Are you sure?")
     glpic = Glpic(args.url, args.user, args.token, args.debug)
     for reservation in args.reservations:
+        info(f"Deleting reservation {reservation}")
         glpic.delete_reservation(reservation)
 
 
