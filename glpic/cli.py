@@ -112,6 +112,13 @@ def list_computers(args):
     print(computerstable)
 
 
+def update_computer(args):
+    glpic = Glpic(args.url, args.user, args.token, args.debug)
+    for computer in args.computers:
+        info(f"Updating computer {computer}")
+        glpic.update_computer(computer, overrides=handle_parameters(args.param))
+
+
 def list_reservations(args):
     glpic = Glpic(args.url, args.user, args.token, args.debug)
     reservationstable = PrettyTable(["Id", "Item", "Begin", "End", "Comment"])
@@ -210,6 +217,16 @@ def cli():
     update_desc = 'Update Object'
     update_parser = subparsers.add_parser('update', description=update_desc, help=update_desc)
     update_subparsers = update_parser.add_subparsers(metavar='', dest='subcommand_update')
+
+    computerupdate_desc = 'Update Computer'
+    computerupdate_epilog = None
+    computerupdate_parser = update_subparsers.add_parser('computer', description=computerupdate_desc,
+                                                         help=computerupdate_desc,
+                                                         epilog=computerupdate_epilog, formatter_class=rawhelp,
+                                                         aliases=['computers'])
+    computerupdate_parser.add_argument('-P', '--param', action='append', help=PARAMHELP, metavar='PARAM')
+    computerupdate_parser.add_argument('computers', metavar='RESERVATIONS', nargs='*')
+    computerupdate_parser.set_defaults(func=update_computer)
 
     reservationupdate_desc = 'Update Reservation'
     reservationupdate_epilog = None

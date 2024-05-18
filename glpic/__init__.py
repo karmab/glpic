@@ -199,6 +199,27 @@ class Glpic(object):
                 break
         return results
 
+    def update_computer(self, computer, overrides):
+        computer_info = self.info_computer({'computer': computer, 'uid': True})
+        if not computer_info:
+            error(f"Computer {computer} not found")
+            return
+        computer_id = computer_info[0]['Computer.id']
+        valid_keys = list(_get(f'{self.base_url}/Computer/', self.headers)[0].keys())
+        wrong_keys = [key for key in overrides if key not in valid_keys]
+        if wrong_keys:
+            error(f"Ignoring keys {','.join(wrong_keys)}")
+            for key in wrong_keys:
+                del overrides[key]
+        if not overrides:
+            info("Nothing to update")
+        data = {'input': overrides}
+        if self.debug:
+            base_curl = curl_base(self.headers)
+            msg = f"{base_curl} -X POST -Lk {self.base_url}/Computer/{computer_id} -d '{json.dumps(data)}'"
+            print(msg)
+        return _put(f'{self.base_url}/Computer/{computer_id}', self.headers, data)
+
     def create_reservation(self, computer, overrides):
         overrides['begin'] = parse(str(datetime.now())).strftime('%Y-%m-%d %H:%M:%S')
         if 'end' not in overrides:
