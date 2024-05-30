@@ -76,9 +76,13 @@ def delete_reservation(args):
 
 def update_reservation(args):
     glpic = Glpic(args.url, args.user, args.token, args.debug)
-    for reservation in args.reservations:
+    overrides = handle_parameters(args.param)
+    reservations = args.reservations
+    if not reservations:
+        reservations = [r['id'] for r in glpic.list_reservations(overrides=overrides)]
+    for reservation in reservations:
         info(f"Updating reservation {reservation}")
-        glpic.update_reservation(reservation, overrides=handle_parameters(args.param))
+        glpic.update_reservation(reservation, overrides=overrides)
 
 
 def info_computer(args):
