@@ -172,10 +172,12 @@ class Glpic(object):
         return _get(f'{self.base_url}/ReservationItem/{reservation}', headers=self.headers)
 
     def list_reservations(self, overrides={}):
+        now = datetime.now()
         user = overrides.get('user') or self.user
         response = _get(f'{self.base_url}/Reservation', headers=self.headers)
         user_id = self.get_user(user)['id']
-        return [r for r in response if r['users_id'] == user_id]
+        l = [r for r in response if r['users_id'] == user_id and datetime.strptime(r['end'], '%Y-%m-%d 00:00:00') > now]
+        return l
 
     def list_computers(self, user=None, overrides={}):
         computers = _get(f'{self.base_url}/search/Computer?uid_cols', headers=self.headers)['data']
