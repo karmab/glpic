@@ -1,0 +1,3 @@
+prettytable
+python-dateutil
+requests
