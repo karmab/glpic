@@ -3,7 +3,6 @@ from argparse import RawDescriptionHelpFormatter as rawhelp
 from glpic import Glpic
 from glpic import error, handle_parameters, info
 import os
-from prettytable import PrettyTable
 import sys
 from textwrap import fill
 
@@ -105,15 +104,17 @@ def info_reservation(args):
 
 def list_computers(args):
     glpic = Glpic(args.url, args.user, args.token, args.debug)
-    computerstable = PrettyTable(["Name", "Group", "Serial", "Model", "Memory", "Bmc"])
+    computerstable = ["Name\t\t\tSerial\tMemory\tBmc\tModel\tGroup"]
     for computer in glpic.list_computers(overrides=handle_parameters(args.param)):
         name, serial = computer['Computer.name'], computer['Computer.serial']
         group, memory = computer['Computer.Group.completename'], computer['Computer.Item_DeviceMemory.size']
+        if memory is not None:
+            memory = int(memory.split('.')[0])
         bmc = computer['Computer.PluginFieldsComputerbmcaddre.bmcaddressfield']
         model = computer['Computer.ComputerModel.name']
-        entry = [name, group, serial, model, memory, bmc]
-        computerstable.add_row(entry)
-    print(computerstable)
+        computerstable.append(f"{name}\t\t\t{serial}\t{memory}\t{bmc}\t{model}\t{group}")
+    for line in computerstable:
+        print(line)
 
 
 def update_computer(args):
@@ -125,16 +126,16 @@ def update_computer(args):
 
 def list_reservations(args):
     glpic = Glpic(args.url, args.user, args.token, args.debug)
-    reservationstable = PrettyTable(["Id", "Item", "Begin", "End", "Comment"])
+    reservationstable = ["Id\tItem\tBegin\t\t\tEnd\t\t\tComment"]
     for reservation in glpic.list_reservations(overrides=handle_parameters(args.param)):
         _id, begin, end, comment = reservation['id'], reservation['begin'], reservation['end'], reservation['comment']
         comment = fill(comment, width=100)
         reservation_id = reservation['reservationitems_id']
         computer_id = glpic.info_reservation(reservation_id)['items_id']
         reservation_name = glpic.info_computer({'computer': computer_id})[0]['Computer.name']
-        entry = [_id, reservation_name, begin, end, comment]
-        reservationstable.add_row(entry)
-    print(reservationstable)
+        reservationstable.append(f"{_id}\t{reservation_name}\t{begin}\t{end}\t{comment}")
+    for line in reservationstable:
+        print(line)
 
 
 def cli():

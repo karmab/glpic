@@ -21,7 +21,6 @@ setup(
     author='Karim Boumedhel',
     author_email='karimboumedhel@gmail.com',
     license='ASL',
-    install_requires=['prettytable'],
     entry_points='''
         [console_scripts]
         glpic=glpic.cli:cli
