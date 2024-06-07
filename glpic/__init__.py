@@ -63,7 +63,7 @@ def _delete(url, headers):
 
 def _get(url, headers):
     if not os.path.basename(url).split('?')[0].isnumeric():
-        encoded_params = urlencode({"range": '0-9999'})
+        encoded_params = urlencode({"range": '0-99999'})
         delimiter = '&' if '?' in url else '?'
         url += f'{delimiter}{encoded_params}'
     try:
