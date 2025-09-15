@@ -11,9 +11,10 @@ LABEL name="karmab/glpic" \
       description="Glpi wrapper"
 
 RUN mkdir /root/glpic
-ADD glpic /root/glpic/glpic
-COPY setup.py /root/glpic
-RUN pip3 install --no-cache /root/glpic
+ADD README.md /root/glpic
+ADD src /root/glpic/src
+COPY pyproject.toml /root/glpic
+RUN pip3 install -U pip setuptools wheel build && pip3 install -e /root/glpic
 
 ENTRYPOINT ["/usr/local/bin/glpic"]
 CMD ["-h"]
