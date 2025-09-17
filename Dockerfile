@@ -14,7 +14,7 @@ RUN mkdir /root/glpic
 ADD README.md /root/glpic
 ADD src /root/glpic/src
 COPY pyproject.toml /root/glpic
-RUN pip3 install -U pip setuptools wheel build && pip3 install -e /root/glpic
+RUN pip3 install -U pip wheel build && pip3 install -e /root/glpic
 
 ENTRYPOINT ["/usr/local/bin/glpic"]
 CMD ["-h"]
