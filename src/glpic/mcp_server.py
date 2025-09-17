@@ -11,10 +11,10 @@ mcp = FastMCP("glpimcp")
 def list_reservations(context: Context,
                       parameters: dict) -> dict:
     """List glpi reservations"""
-    url = get_http_headers().get('url')
-    user = get_http_headers().get('user')
-    token = get_http_headers().get('token')
-    glpic = Glpic(url, user, token)
+    url = get_http_headers().get('glpi_url')
+    user = get_http_headers().get('glpi_user')
+    api_token = get_http_headers().get('glpi_token')
+    glpic = Glpic(url, user, api_token)
     return glpic.list_reservations(overrides=parameters)
 
 

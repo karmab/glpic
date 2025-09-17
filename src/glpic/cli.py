@@ -144,9 +144,9 @@ def cli():
     # PARAMETERS_HELP = 'specify parameter or keyword for rendering (multiple can be specified)'
     parser = argparse.ArgumentParser(description='Glpi client')
     parser.add_argument('-d', '--debug', action='store_true')
-    parser.add_argument('-t', '--token', default=os.environ.get('GLPIC_TOKEN'))
-    parser.add_argument('-u', '-U', '--url', default=os.environ.get('GLPIC_URL'))
-    parser.add_argument('-user', default=os.environ.get('GLPIC_USER'))
+    parser.add_argument('-t', '--token')
+    parser.add_argument('-u', '-U', '--url')
+    parser.add_argument('-user')
     subparsers = parser.add_subparsers(metavar='', title='Available Commands')
 
     create_desc = 'Create Object'
@@ -260,15 +260,6 @@ def cli():
                     get_subparser_print_help(subparser, subsubcommand)
                 os._exit(0)
         os._exit(0)
-    if args.url is None:
-        error("Set url via GLPIC_URL env variable or via command line")
-        sys.exit(1)
-    if args.user is None:
-        error("Set user via GLPIC_USER env variable  or via command line")
-        sys.exit(1)
-    if args.token is None:
-        error("Set token via GLPIC_TOKEN env variable  or via command line")
-        sys.exit(1)
     args.func(args)
 
 

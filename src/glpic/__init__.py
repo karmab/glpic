@@ -115,26 +115,36 @@ def curl_base(headers):
 
 
 class Glpic(object):
-    def __init__(self, base_url, user, api_token, debug=False):
+    def __init__(self, url, user, token, debug=False):
         self.debug = debug
-        self.base_url = base_url
+        self.url = url or os.environ.get('GLPI_URL')
+        if self.url is None:
+            error('GLPI_URL is not set')
+            sys.exit(1)
+        user = user or os.environ.get('GLPI_USER')
+        if user is None:
+            error('GLPI_USER is not set')
+            sys.exit(1)
         self.user = user.split('@')[0]
+        token = token or os.environ.get('GLPI_TOKEN')
+        if token is None:
+            error('GLPI_TOKEN is not set')
+            sys.exit(1)
         ssl._create_default_https_context = ssl._create_unverified_context
-        headers = {'Content-Type': 'application/json', 'Authorization': f"user_token {api_token}"}
-        response = _get(f'{base_url}/initSession?get_full_session=true', headers)
+        headers = {'Content-Type': 'application/json', 'Authorization': f"user_token {token}"}
+        response = _get(f'{self.url}/initSession?get_full_session=true', headers)
         self.headers = {'Content-Type': 'application/json', "Session-Token": response['session_token']}
 
     def get_user(self, user=None):
-        if user is None:
-            user = self.user
-        users = _get(f'{self.base_url}/User', headers=self.headers)
+        user = user or self.user
+        users = _get(f'{self.url}/User', headers=self.headers)
         for u in users:
             if user in u['name']:
                 return u
 
     def get_options(self, item_type):
         search_options = {}
-        all_options = _get(f'{self.base_url}/listSearchOptions/{item_type}', headers=self.headers)
+        all_options = _get(f'{self.url}/listSearchOptions/{item_type}', headers=self.headers)
         for key in all_options:
             if key.isnumeric():
                 search_options[all_options[key]['uid']] = key
@@ -161,25 +171,25 @@ class Glpic(object):
                 search_data += "criteria[{index}][link]=AND&criteria[{index}][itemtype]=Computer"
                 search_data = f"&criteria[{index}][field]={key_id}&criteria[{index}][searchtype]=contains"
                 search_data += f"&criteria[{index}][value]={value}"
-        url = f'{self.base_url}/search/Computer?{search_data}&uid_cols'
+        url = f'{self.url}/search/Computer?{search_data}&uid_cols'
         if overrides.get('uid', False):
             url += '&forcedisplay[0]=2'
         computers = _get(url, headers=self.headers)
         return computers['data'] if 'data' in computers else []
 
     def info_reservation(self, reservation):
-        return _get(f'{self.base_url}/ReservationItem/{reservation}', headers=self.headers)
+        return _get(f'{self.url}/ReservationItem/{reservation}', headers=self.headers)
 
     def list_reservations(self, overrides={}):
         now = datetime.now()
         user = overrides.get('user') or self.user
-        response = _get(f'{self.base_url}/Reservation', headers=self.headers)
+        response = _get(f'{self.url}/Reservation', headers=self.headers)
         user_id = self.get_user(user)['id']
         l = [r for r in response if r['users_id'] == user_id and datetime.strptime(r['end'], '%Y-%m-%d 00:00:00') > now]
         return l
 
     def list_computers(self, user=None, overrides={}):
-        computers = _get(f'{self.base_url}/search/Computer?uid_cols', headers=self.headers)['data']
+        computers = _get(f'{self.url}/search/Computer?uid_cols', headers=self.headers)['data']
         if not overrides:
             return computers
         results = []
@@ -206,7 +216,7 @@ class Glpic(object):
             error(f"Computer {computer} not found")
             return
         computer_id = computer_info[0]['Computer.id']
-        valid_keys = list(_get(f'{self.base_url}/Computer/', self.headers)[0].keys())
+        valid_keys = list(_get(f'{self.url}/Computer/', self.headers)[0].keys())
         wrong_keys = [key for key in overrides if key not in valid_keys]
         if wrong_keys:
             error(f"Ignoring keys {','.join(wrong_keys)}")
@@ -217,9 +227,9 @@ class Glpic(object):
         data = {'input': overrides}
         if self.debug:
             base_curl = curl_base(self.headers)
-            msg = f"{base_curl} -X POST -Lk {self.base_url}/Computer/{computer_id} -d '{json.dumps(data)}'"
+            msg = f"{base_curl} -X POST -Lk {self.url}/Computer/{computer_id} -d '{json.dumps(data)}'"
             print(msg)
-        return _put(f'{self.base_url}/Computer/{computer_id}', self.headers, data)
+        return _put(f'{self.url}/Computer/{computer_id}', self.headers, data)
 
     def create_reservation(self, computer, overrides):
         overrides['begin'] = parse(str(datetime.now())).strftime('%Y-%m-%d %H:%M:%S')
@@ -235,7 +245,7 @@ class Glpic(object):
         computer_id = self.info_computer({'computer': computer, 'uid': True})[0]['Computer.id']
         reservationitem_id = self.get_reservation_item_id(computer_id)
         overrides['reservationitems_id'] = reservationitem_id
-        valid_keys = list(_get(f'{self.base_url}/Reservation/', self.headers)[0].keys())
+        valid_keys = list(_get(f'{self.url}/Reservation/', self.headers)[0].keys())
         wrong_keys = [key for key in overrides if key not in valid_keys]
         if wrong_keys:
             error(f"Ignoring keys {','.join(wrong_keys)}")
@@ -247,18 +257,18 @@ class Glpic(object):
         data = {'input': overrides}
         if self.debug:
             base_curl = curl_base(self.headers)
-            msg = f"{base_curl} -X POST -Lk {self.base_url}/Reservation -d '{json.dumps(data)}'"
+            msg = f"{base_curl} -X POST -Lk {self.url}/Reservation -d '{json.dumps(data)}'"
             print(msg)
-        return _post(f'{self.base_url}/Reservation', self.headers, data)
+        return _post(f'{self.url}/Reservation', self.headers, data)
 
     def delete_reservation(self, reservation):
         if self.debug:
             base_curl = curl_base(self.headers)
-            print(f"{base_curl} -X DELETE -Lk {self.base_url}/Reservation/{reservation}")
-        return _delete(f'{self.base_url}/Reservation/{reservation}', headers=self.headers)
+            print(f"{base_curl} -X DELETE -Lk {self.url}/Reservation/{reservation}")
+        return _delete(f'{self.url}/Reservation/{reservation}', headers=self.headers)
 
     def update_reservation(self, reservation, overrides):
-        valid_keys = list(_get(f'{self.base_url}/Reservation/', self.headers)[0].keys()) + ['user']
+        valid_keys = list(_get(f'{self.url}/Reservation/', self.headers)[0].keys()) + ['user']
         wrong_keys = [key for key in overrides if key not in valid_keys]
         if wrong_keys:
             error(f"Ignoring keys {','.join(wrong_keys)}")
@@ -279,13 +289,13 @@ class Glpic(object):
         data = {'input': overrides}
         if self.debug:
             base_curl = curl_base(self.headers)
-            msg = f"{base_curl} -X PUT -Lk {self.base_url}/Reservation/{reservation} -d '{json.dumps(data)}'"
+            msg = f"{base_curl} -X PUT -Lk {self.url}/Reservation/{reservation} -d '{json.dumps(data)}'"
             print(msg)
-        result = _put(f'{self.base_url}/Reservation/{reservation}', self.headers, data)
+        result = _put(f'{self.url}/Reservation/{reservation}', self.headers, data)
         return result
 
     def get_reservation_item_id(self, computer_id):
-        url = f'{self.base_url}/ReservationItem?uid_cols'
+        url = f'{self.url}/ReservationItem?uid_cols'
         reservation_items = _get(url, headers=self.headers)
         for entry in reservation_items:
             if entry['itemtype'] == 'Computer' and entry['items_id'] == computer_id:

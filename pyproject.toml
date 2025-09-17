@@ -14,7 +14,7 @@ dependencies = [ "fastmcp", "prettytable"]
 
 [project.scripts]
 glpic = "glpic.cli:cli"
-glpimcp = "rhsupportlib.mcp_server:main"
+glpimcp = "glpic.mcp_server:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
