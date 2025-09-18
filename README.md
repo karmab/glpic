@@ -90,7 +90,7 @@ Configure the server in your client:
 ```json
     "rhsupportcli": {
       "transport": "streamable-http",
-      "url": "http://your_server:8000"
+      "url": "http://your_server:8000/mcp"
       "headers": {
         "GLPI_URL": "https://server/apirest.php",
         "GLPI_USER": "myuser",

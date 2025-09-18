@@ -1,6 +1,6 @@
 import argparse
 from argparse import RawDescriptionHelpFormatter as rawhelp
-from glpic import Glpic
+from glpic import Glpi
 from glpic import error, handle_parameters, info
 import os
 from prettytable import PrettyTable
@@ -53,7 +53,7 @@ def get_subparser(parser, subcommand):
 
 
 def create_reservation(args):
-    glpic = Glpic(args.url, args.user, args.token, args.debug)
+    glpic = Glpi(args.url, args.user, args.token)
     overrides = handle_parameters(args.param)
     computer = args.computer or overrides.get('computer')
     if computer is None:
@@ -68,14 +68,14 @@ def delete_reservation(args):
     yes_top = args.yes_top
     if not yes and not yes_top:
         confirm("Are you sure?")
-    glpic = Glpic(args.url, args.user, args.token, args.debug)
+    glpic = Glpi(args.url, args.user, args.token)
     for reservation in args.reservations:
         info(f"Deleting reservation {reservation}")
         glpic.delete_reservation(reservation)
 
 
 def update_reservation(args):
-    glpic = Glpic(args.url, args.user, args.token, args.debug)
+    glpic = Glpi(args.url, args.user, args.token)
     overrides = handle_parameters(args.param)
     reservations = args.reservations
     if not reservations:
@@ -86,7 +86,7 @@ def update_reservation(args):
 
 
 def info_computer(args):
-    glpic = Glpic(args.url, args.user, args.token, args.debug)
+    glpic = Glpi(args.url, args.user, args.token)
     overrides = {'computer': args.computer} if args.computer is not None else {}
     overrides.update(handle_parameters(args.param))
     data = glpic.info_computer(overrides)
@@ -97,18 +97,18 @@ def info_computer(args):
 
 
 def info_reservation(args):
-    glpic = Glpic(args.url, args.user, args.token, args.debug)
+    glpic = Glpi(args.url, args.user, args.token)
     data = glpic.info_reservation(args.reservation)
     for key in data:
         print(f"{key}: {data[key]}")
 
 
 def list_computers(args):
-    glpic = Glpic(args.url, args.user, args.token, args.debug)
+    glpic = Glpi(args.url, args.user, args.token)
     computerstable = PrettyTable(["Name", "Group", "Serial", "Model", "Memory", "Bmc"])
     for computer in glpic.list_computers(overrides=handle_parameters(args.param)):
         name, serial = computer['Computer.name'], computer['Computer.serial']
-        group, memory = computer['Computer.Group.completename'], computer['Computer.Item_DeviceMemory.size']
+        group, memory = computer['Computer.Group.completename'], computer.get('Computer.Item_DeviceMemory.size')
         bmc = computer['Computer.PluginFieldsComputerbmcaddre.bmcaddressfield']
         model = computer['Computer.ComputerModel.name']
         entry = [name, group, serial, model, memory, bmc]
@@ -117,14 +117,14 @@ def list_computers(args):
 
 
 def update_computer(args):
-    glpic = Glpic(args.url, args.user, args.token, args.debug)
+    glpic = Glpi(args.url, args.user, args.token)
     for computer in args.computers:
         info(f"Updating computer {computer}")
         glpic.update_computer(computer, overrides=handle_parameters(args.param))
 
 
 def list_reservations(args):
-    glpic = Glpic(args.url, args.user, args.token, args.debug)
+    glpic = Glpi(args.url, args.user, args.token)
     reservationstable = PrettyTable(["Id", "Item", "Begin", "End", "Comment"])
     for reservation in glpic.list_reservations(overrides=handle_parameters(args.param)):
         _id, begin, end, comment = reservation['id'], reservation['begin'], reservation['end'], reservation['comment']
@@ -137,13 +137,22 @@ def list_reservations(args):
     print(reservationstable)
 
 
+def list_users(args):
+    glpic = Glpi(args.url, args.user, args.token)
+    userstable = PrettyTable(["Id", "Name", "Last Login"])
+    for user in glpic.list_users(overrides=handle_parameters(args.param)):
+        _id, name, last_login = user['id'], user['name'], user['last_login']
+        entry = [_id, name, last_login]
+        userstable.add_row(entry)
+    print(userstable)
+
+
 def cli():
     """
 
     """
     # PARAMETERS_HELP = 'specify parameter or keyword for rendering (multiple can be specified)'
     parser = argparse.ArgumentParser(description='Glpi client')
-    parser.add_argument('-d', '--debug', action='store_true')
     parser.add_argument('-t', '--token')
     parser.add_argument('-u', '-U', '--url')
     parser.add_argument('-user')
@@ -217,6 +226,13 @@ def cli():
     reservationlist_parser.add_argument('-P', '--param', action='append', help=PARAMHELP, metavar='PARAM')
     list_subparsers.add_parser('reservation', parents=[reservationlist_parser], description=reservationlist_desc,
                                help=reservationlist_desc, aliases=['reservations'])
+
+    userlist_desc = 'List Users'
+    userlist_parser = argparse.ArgumentParser(add_help=False)
+    userlist_parser.set_defaults(func=list_users)
+    userlist_parser.add_argument('-P', '--param', action='append', help=PARAMHELP, metavar='PARAM')
+    list_subparsers.add_parser('user', parents=[userlist_parser], description=userlist_desc,
+                               help=userlist_desc, aliases=['users'])
 
     update_desc = 'Update Object'
     update_parser = subparsers.add_parser('update', description=update_desc, help=update_desc)

@@ -110,13 +110,8 @@ def info(text):
     print(f'\033[0;{color}m{text}\033[0;0m')
 
 
-def curl_base(headers):
-    return f"curl -H 'Content-Type: application/json' -H \"Session-Token: {headers['Session-Token']}\""
-
-
-class Glpic(object):
-    def __init__(self, url, user, token, debug=False):
-        self.debug = debug
+class Glpi(object):
+    def __init__(self, url, user, token):
         self.url = url or os.environ.get('GLPI_URL')
         if self.url is None:
             error('GLPI_URL is not set')
@@ -141,6 +136,16 @@ class Glpic(object):
         for u in users:
             if user in u['name']:
                 return u
+
+    def list_users(self, overrides={}):
+        users = []
+        for u in _get(f'{self.url}/User', headers=self.headers):
+            if overrides:
+                for key in overrides:
+                    if u[key] != overrides[key]:
+                        continue
+            users.append(u)
+        return users
 
     def get_options(self, item_type):
         search_options = {}
@@ -225,10 +230,6 @@ class Glpic(object):
         if not overrides:
             info("Nothing to update")
         data = {'input': overrides}
-        if self.debug:
-            base_curl = curl_base(self.headers)
-            msg = f"{base_curl} -X POST -Lk {self.url}/Computer/{computer_id} -d '{json.dumps(data)}'"
-            print(msg)
         return _put(f'{self.url}/Computer/{computer_id}', self.headers, data)
 
     def create_reservation(self, computer, overrides):
@@ -255,16 +256,9 @@ class Glpic(object):
             info("Nothing to create")
             return
         data = {'input': overrides}
-        if self.debug:
-            base_curl = curl_base(self.headers)
-            msg = f"{base_curl} -X POST -Lk {self.url}/Reservation -d '{json.dumps(data)}'"
-            print(msg)
         return _post(f'{self.url}/Reservation', self.headers, data)
 
     def delete_reservation(self, reservation):
-        if self.debug:
-            base_curl = curl_base(self.headers)
-            print(f"{base_curl} -X DELETE -Lk {self.url}/Reservation/{reservation}")
         return _delete(f'{self.url}/Reservation/{reservation}', headers=self.headers)
 
     def update_reservation(self, reservation, overrides):
@@ -287,12 +281,7 @@ class Glpic(object):
         if 'user' in overrides:
             del overrides['user']
         data = {'input': overrides}
-        if self.debug:
-            base_curl = curl_base(self.headers)
-            msg = f"{base_curl} -X PUT -Lk {self.url}/Reservation/{reservation} -d '{json.dumps(data)}'"
-            print(msg)
-        result = _put(f'{self.url}/Reservation/{reservation}', self.headers, data)
-        return result
+        return _put(f'{self.url}/Reservation/{reservation}', self.headers, data)
 
     def get_reservation_item_id(self, computer_id):
         url = f'{self.url}/ReservationItem?uid_cols'

@@ -1,6 +1,6 @@
 import argparse
 # import os
-from glpic import Glpic
+from glpic import Glpi
 from fastmcp import FastMCP, Context
 from fastmcp.server.dependencies import get_http_headers
 
@@ -14,7 +14,7 @@ def create_reservation(context: Context,
     url = get_http_headers().get('glpi_url')
     user = get_http_headers().get('glpi_user')
     token = get_http_headers().get('glpi_token')
-    glpic = Glpic(url, user, token)
+    glpic = Glpi(url, user, token)
     return glpic.create_reservation(computer, overrides)
 
 
@@ -25,7 +25,7 @@ def delete_reservation(context: Context,
     url = get_http_headers().get('glpi_url')
     user = get_http_headers().get('glpi_user')
     token = get_http_headers().get('glpi_token')
-    glpic = Glpic(url, user, token)
+    glpic = Glpi(url, user, token)
     return glpic.delete_reservation(reservation)
 
 
@@ -36,7 +36,7 @@ def info_computer(context: Context,
     url = get_http_headers().get('glpi_url')
     user = get_http_headers().get('glpi_user')
     token = get_http_headers().get('glpi_token')
-    glpic = Glpic(url, user, token)
+    glpic = Glpi(url, user, token)
     return glpic.info_reservation({'computer': computer})
 
 
@@ -47,30 +47,52 @@ def info_reservation(context: Context,
     url = get_http_headers().get('glpi_url')
     user = get_http_headers().get('glpi_user')
     token = get_http_headers().get('glpi_token')
-    glpic = Glpic(url, user, token)
+    glpic = Glpi(url, user, token)
     return glpic.info_reservation(reservation)
 
 
 @mcp.tool()
+def get_user(context: Context,
+             searchuser: str = None) -> dict:
+    """Get info on glpi user"""
+    url = get_http_headers().get('glpi_url')
+    user = get_http_headers().get('glpi_user')
+    token = get_http_headers().get('glpi_token')
+    glpic = Glpi(url, user, token)
+    return glpic.get_user(searchuser or user)
+
+
+@mcp.tool()
 def list_computers(context: Context,
-                   overrides: dict) -> dict:
+                   overrides: dict) -> list:
     """List glpi computers"""
     url = get_http_headers().get('glpi_url')
     user = get_http_headers().get('glpi_user')
     token = get_http_headers().get('glpi_token')
-    glpic = Glpic(url, user, token)
+    glpic = Glpi(url, user, token)
     return glpic.list_computers(overrides)
 
 
 @mcp.tool()
 def list_reservations(context: Context,
-                      overrides: dict) -> dict:
+                      overrides: dict) -> list:
     """List glpi reservations"""
     url = get_http_headers().get('glpi_url')
     user = get_http_headers().get('glpi_user')
     token = get_http_headers().get('glpi_token')
-    glpic = Glpic(url, user, token)
+    glpic = Glpi(url, user, token)
     return glpic.list_reservations(overrides)
+
+
+@mcp.tool()
+def list_users(context: Context,
+               overrides: dict) -> list:
+    """List glpi users"""
+    url = get_http_headers().get('glpi_url')
+    user = get_http_headers().get('glpi_user')
+    token = get_http_headers().get('glpi_token')
+    glpic = Glpi(url, user, token)
+    return glpic.list_users(overrides)
 
 
 @mcp.tool()
@@ -80,8 +102,8 @@ def update_computer(context: Context,
     url = get_http_headers().get('glpi_url')
     user = get_http_headers().get('glpi_user')
     token = get_http_headers().get('glpi_token')
-    glpic = Glpic(url, user, token)
-    glpic.update_computer(computer, overrides)
+    glpic = Glpi(url, user, token)
+    return glpic.update_computer(computer, overrides)
 
 
 @mcp.tool()
@@ -91,8 +113,8 @@ def update_reservation(context: Context,
     url = get_http_headers().get('glpi_url')
     user = get_http_headers().get('glpi_user')
     token = get_http_headers().get('glpi_token')
-    glpic = Glpic(url, user, token)
-    glpic.update_reservation(reservation, overrides)
+    glpic = Glpi(url, user, token)
+    return glpic.update_reservation(reservation, overrides)
 
 
 def main():
