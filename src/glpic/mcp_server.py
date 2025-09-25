@@ -108,12 +108,13 @@ def update_computer(context: Context,
 
 @mcp.tool()
 def update_reservation(context: Context,
-                       reservation: str, overrides: dict) -> dict:
+                       user: str, reservation: str, overrides: dict) -> dict:
     """Create glpi reservation"""
     url = get_http_headers().get('glpi_url')
     user = get_http_headers().get('glpi_user')
     token = get_http_headers().get('glpi_token')
     glpic = Glpi(url, user, token)
+    overrides['user'] = user
     return glpic.update_reservation(reservation, overrides)
 
 
