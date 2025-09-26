@@ -58,17 +58,23 @@ glpimcp
 or via a container (with additional env variables to avoid defining headers on client side)
 
 ```
-podman run -p 8000:8000 -d --name glpi quay.io/karmab/glpic
+podman run -p 8000:8000 -d --name glpi --entrypoint=/usr/local/bin/glpimcp quay.io/karmab/glpic
 ```
 
-You can then point to the server from your client with a modified snippet and specifying credentials via headers
+You can also set env variables prior to launching or in the container to avoid defining headers on client side). For instance
+
+```
+podman run -p 8000:8000 -d --name glpi -e GLPI_URL=https://glpiserver/apirest.php -e GLPI_USER=myser -e GLPI_TOKEN=mytoken --entrypoint=/usr/local/bin/glpimcp quay.io/karmab/glpic
+```
+
+You can then point to the server from your client with a modified snippet and specifying credentials via headers if needed
 
 ```json
 "mcpServers": {
          "glpi": {
              "command": "/usr/local/bin/npx",
              "args": ["mcp-remote", "http://your_server:8000/mcp", "--allow-http",
-             "--header", "GLPI_URL: https://server/apirest.php",
+             "--header", "GLPI_URL: https://glpiserver/apirest.php",
              "--header", "GLPI_USER: myuser",
              "--header", "GLPI_TOKEN: mytoken"]
         }
@@ -78,7 +84,7 @@ You can then point to the server from your client with a modified snippet and sp
 For Claude Code, you can add the mcp directly from command line:
 
 ```
-claude mcp add --transport http glpi http://your_server:8000/mcp -H "GLPI_URL: https://server/apirest.php" -H "GLPI_USER: myuser" -H "GLPI_TOKEN: mytoken"
+claude mcp add --transport http glpi http://glpiserver:8000/mcp -H "GLPI_URL: https://myserver/apirest.php" -H "GLPI_USER: myuser" -H "GLPI_TOKEN: mytoken"
 ```
 
 # Using client

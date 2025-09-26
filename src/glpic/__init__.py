@@ -1,5 +1,4 @@
 from ast import literal_eval
-from dateutil.parser import parse
 from datetime import date, datetime, timedelta
 import json
 import ssl
@@ -233,14 +232,14 @@ class Glpi(object):
         return _put(f'{self.url}/Computer/{computer_id}', self.headers, data)
 
     def create_reservation(self, computer, overrides):
-        overrides['begin'] = parse(str(datetime.now())).strftime('%Y-%m-%d %H:%M:%S')
+        overrides['begin'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         if 'end' not in overrides:
             overrides['end'] = date.today() + timedelta(days=30)
         user = overrides.get('user', self.user)
         if 'users_id' not in overrides:
             user_id = self.get_user(user)['id']
             overrides['users_id'] = user_id
-        overrides['end'] = parse(str(overrides['end'])).strftime('%Y-%m-%d 00:00:00')
+        overrides['end'] = datetime.strptime(str(overrides['end']), '%Y-%m-%d %H:%M:%S')
         if 'comment' not in overrides:
             overrides['comment'] = f'reservation for {user}'
         computer_id = self.info_computer({'computer': computer, 'uid': True})[0]['Computer.id']
@@ -274,7 +273,7 @@ class Glpi(object):
             warning(f"Setting end date to {new_date}")
             overrides['end'] = new_date
         if 'end' in overrides:
-            overrides['end'] = parse(str(overrides['end'])).strftime('%Y-%m-%d 00:00:00')
+            overrides['end'] = datetime.strptime(str(overrides['end']), '%Y-%m-%d %H:%M:%S')
         new_user = overrides.get('user') or overrides.get('users_id')
         if new_user is not None and not str(new_user).isnumeric():
             overrides['users_id'] = self.get_user(new_user)['id']
