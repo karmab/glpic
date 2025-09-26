@@ -1,69 +1,37 @@
-This repo contains code for a lightweight client to interact with GLPI and a MCP to consume it from any LLM
+This repo contains code for a MCP interacting with GLPI API to allow consuming it from any LLM.
+Additionally a lightweight client is available
+
+| Available tools   |
+|-------------------|
+|create_reservation |
+|delete_reservation |
+|info_computer      |
+|info_reservation   |
+|get_user           |
+|list_computers     |
+|list_reservations  |
+|list_users         |
+|update_computer    |
+|update_reservation |
 
 # Requirements
 
 - Available glpi instance
-- valid user and API token
-- prettytable python library
+- Valid user and API token
 
 # Installation
+
+You can either run as a container or install dependencies locally
 
 ```
 pip3 install glpic
 ```
 
-# Using client
-
-Store your creds in any env file such as [glpic.env.sample](glpic.env.sample) and set data accordingly
-You can then use the following commands
-
-- List users
-
-```
-glpic list users
-```
-
-- List computers
-
-```
-glpic list computers
-```
-
-- Get information on a specific computer
-
-```
-glpic info computer $computer
-```
-
-- List reservations
-
-```
-glpic list reservations
-```
-
-- Get information on a specific reservation
-
-```
-glpic info reservation $reservation
-```
-
-- Update a given reservation
-
-```
-glpic update reservation $reservation -P end=20240601
-```
-
-- Update all reservations
-
-```
-glpic update reservations
-```
-
 # Using MCP
 
-The server is started and configured differently depending on what transport you want to use
+## STDIO
 
-For STDIO, you can include the following configuration snippet In VSCode or Claude Desktop:
+Include the following configuration snippet In VSCode or Claude Desktop:
 
 ```json
 "mcpServers": {
@@ -79,13 +47,21 @@ For STDIO, you can include the following configuration snippet In VSCode or Clau
     }
 ```
 
+## Streamable HTTP
+
 For Streamable HTTP, first start the server in a terminal:
 
 ```
 glpimcp
 ```
 
-You can then point to the server from your client with a modified snippet
+or via a container (with additional env variables to avoid defining headers on client side)
+
+```
+podman run -p 8000:8000 -d --name glpi quay.io/karmab/glpic
+```
+
+You can then point to the server from your client with a modified snippet and specifying credentials via headers
 
 ```json
 "mcpServers": {
@@ -104,3 +80,7 @@ For Claude Code, you can add the mcp directly from command line:
 ```
 claude mcp add --transport http glpi http://your_server:8000/mcp -H "GLPI_URL: https://server/apirest.php" -H "GLPI_USER: myuser" -H "GLPI_TOKEN: mytoken"
 ```
+
+# Using client
+
+Store your creds in any env file such as [glpic.env.sample](glpic.env.sample) and set data accordingly. You can then use `glpic` and access similar functions
