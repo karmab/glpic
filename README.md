@@ -84,7 +84,7 @@ You can then point to the server from your client with a modified snippet and sp
 For Claude Code, you can add the mcp directly from command line:
 
 ```
-claude mcp add --transport http glpi http://glpiserver:8000/mcp -H "GLPI_URL: https://myserver/apirest.php" -H "GLPI_USER: myuser" -H "GLPI_TOKEN: mytoken"
+claude mcp add --transport http glpi http://your_server:8000/mcp -H "GLPI_URL: https://myserver/apirest.php" -H "GLPI_USER: myuser" -H "GLPI_TOKEN: mytoken"
 ```
 
 # Using client

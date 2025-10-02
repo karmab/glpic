@@ -8,6 +8,18 @@ from urllib.request import urlopen, Request
 from urllib.parse import urlencode
 
 
+def parse_date(date):
+    date = str(date)
+    formats = ["%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"]
+    for fmt in formats:
+        try:
+            correct_date = datetime.strptime(date, fmt)
+            return correct_date.strftime(fmt)
+        except ValueError:
+            pass
+    raise ValueError(f"Unsupported date format: {date}")
+
+
 def handle_parameters(parameters):
     overrides = {}
     processed_keys = []
@@ -189,7 +201,7 @@ class Glpi(object):
         user = overrides.get('user') or self.user
         response = _get(f'{self.url}/Reservation', headers=self.headers)
         user_id = self.get_user(user)['id']
-        l = [r for r in response if r['users_id'] == user_id and datetime.strptime(r['end'], '%Y-%m-%d 00:00:00') > now]
+        l = [r for r in response if r['users_id'] == user_id and parse_date(r['end']) > now]
         return l
 
     def list_computers(self, user=None, overrides={}):
@@ -239,7 +251,7 @@ class Glpi(object):
         if 'users_id' not in overrides:
             user_id = self.get_user(user)['id']
             overrides['users_id'] = user_id
-        overrides['end'] = datetime.strptime(str(overrides['end']), '%Y-%m-%d %H:%M:%S')
+        overrides['end'] = parse_date(str(overrides['end']))
         if 'comment' not in overrides:
             overrides['comment'] = f'reservation for {user}'
         computer_id = self.info_computer({'computer': computer, 'uid': True})[0]['Computer.id']
@@ -273,7 +285,7 @@ class Glpi(object):
             warning(f"Setting end date to {new_date}")
             overrides['end'] = new_date
         if 'end' in overrides:
-            overrides['end'] = datetime.strptime(str(overrides['end']), '%Y-%m-%d %H:%M:%S')
+            overrides['end'] = parse_date(str(overrides['end']))
         new_user = overrides.get('user') or overrides.get('users_id')
         if new_user is not None and not str(new_user).isnumeric():
             overrides['users_id'] = self.get_user(new_user)['id']
