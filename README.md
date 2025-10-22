@@ -1,3 +1,13 @@
+# TLDR
+
+Just execute the following line to use from Claude Code:
+
+```
+claude mcp add --transport http glpi http://your_server:8000/mcp
+```
+
+# About
+
 This repo contains code for a MCP interacting with GLPI API to allow consuming it from any LLM.
 Additionally a lightweight client is available
 
