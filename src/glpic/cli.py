@@ -55,12 +55,13 @@ def get_subparser(parser, subcommand):
 def create_reservation(args):
     glpic = Glpi(args.url, args.user, args.token)
     overrides = handle_parameters(args.param)
+    user = overrides.get('user') or glpic.user
     computer = args.computer or overrides.get('computer')
     if computer is None:
         error("Missing computer")
         sys.exit(1)
-    info(f"Creating reservation for computer {computer}")
-    glpic.create_reservation(computer, overrides)
+    info(f"Creating reservation for computer {computer} and for user {user}")
+    glpic.create_reservation(user, computer, overrides)
 
 
 def delete_reservation(args):
@@ -77,12 +78,13 @@ def delete_reservation(args):
 def update_reservation(args):
     glpic = Glpi(args.url, args.user, args.token)
     overrides = handle_parameters(args.param)
+    user = overrides.get('user') or glpic.user
     reservations = args.reservations
     if not reservations:
-        reservations = [r['id'] for r in glpic.list_reservations(overrides=overrides)]
+        reservations = [r['id'] for r in glpic.list_reservations(user)]
     for reservation in reservations:
         info(f"Updating reservation {reservation}")
-        glpic.update_reservation(reservation, overrides=overrides)
+        glpic.update_reservation(user, reservation, overrides=overrides)
 
 
 def info_computer(args):
@@ -125,8 +127,10 @@ def update_computer(args):
 
 def list_reservations(args):
     glpic = Glpi(args.url, args.user, args.token)
+    overrides = handle_parameters(args.param)
+    user = overrides.get('user') or glpic.user
     reservationstable = PrettyTable(["Id", "Item", "Begin", "End", "Comment"])
-    for reservation in glpic.list_reservations(overrides=handle_parameters(args.param)):
+    for reservation in glpic.list_reservations(user):
         _id, begin, end, comment = reservation['id'], reservation['begin'], reservation['end'], reservation['comment']
         comment = fill(comment, width=100)
         reservation_id = reservation['reservationitems_id']

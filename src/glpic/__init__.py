@@ -196,9 +196,8 @@ class Glpi(object):
     def info_reservation(self, reservation):
         return _get(f'{self.url}/ReservationItem/{reservation}', headers=self.headers)
 
-    def list_reservations(self, overrides={}):
+    def list_reservations(self, user):
         now = datetime.now()
-        user = overrides.get('user') or self.user
         response = _get(f'{self.url}/Reservation', headers=self.headers)
         user_id = self.get_user(user)['id']
         l = [r for r in response if r['users_id'] == user_id and parse_date(r['end']) > now]
@@ -243,11 +242,10 @@ class Glpi(object):
         data = {'input': overrides}
         return _put(f'{self.url}/Computer/{computer_id}', self.headers, data)
 
-    def create_reservation(self, computer, overrides):
+    def create_reservation(self, user, computer, overrides):
         overrides['begin'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         if 'end' not in overrides:
             overrides['end'] = date.today() + timedelta(days=30)
-        user = overrides.get('user', self.user)
         if 'users_id' not in overrides:
             user_id = self.get_user(user)['id']
             overrides['users_id'] = user_id
@@ -272,7 +270,7 @@ class Glpi(object):
     def delete_reservation(self, reservation):
         return _delete(f'{self.url}/Reservation/{reservation}', headers=self.headers)
 
-    def update_reservation(self, reservation, overrides):
+    def update_reservation(self, user, reservation, overrides={}):
         valid_keys = list(_get(f'{self.url}/Reservation/', self.headers)[0].keys()) + ['user']
         wrong_keys = [key for key in overrides if key not in valid_keys]
         if wrong_keys:
@@ -286,9 +284,8 @@ class Glpi(object):
             overrides['end'] = new_date
         if 'end' in overrides:
             overrides['end'] = parse_date(str(overrides['end']))
-        new_user = overrides.get('user') or overrides.get('users_id')
-        if new_user is not None and not str(new_user).isnumeric():
-            overrides['users_id'] = self.get_user(new_user)['id']
+        if str(user).isnumeric():
+            overrides['users_id'] = self.get_user(user)['id']
         if 'user' in overrides:
             del overrides['user']
         data = {'input': overrides}
