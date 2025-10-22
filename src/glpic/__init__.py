@@ -1,5 +1,6 @@
 from ast import literal_eval
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
+from datetime import datetime as d
 import json
 import ssl
 import os
@@ -13,7 +14,7 @@ def parse_date(date):
     formats = ["%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"]
     for fmt in formats:
         try:
-            correct_date = datetime.strptime(date, fmt)
+            correct_date = d.strptime(date, fmt)
             return correct_date.strftime(fmt)
         except ValueError:
             pass
@@ -197,10 +198,10 @@ class Glpi(object):
         return _get(f'{self.url}/ReservationItem/{reservation}', headers=self.headers)
 
     def list_reservations(self, user):
-        now = datetime.now()
+        fmt = "%Y-%m-%d %H:%M:%S"
         response = _get(f'{self.url}/Reservation', headers=self.headers)
         user_id = self.get_user(user)['id']
-        l = [r for r in response if r['users_id'] == user_id and parse_date(r['end']) > now]
+        l = [r for r in response if r['users_id'] == user_id and d.strptime(parse_date(r['end']), fmt) > d.now()]
         return l
 
     def list_computers(self, user=None, overrides={}):
@@ -243,7 +244,7 @@ class Glpi(object):
         return _put(f'{self.url}/Computer/{computer_id}', self.headers, data)
 
     def create_reservation(self, user, computer, overrides):
-        overrides['begin'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        overrides['begin'] = d.now().strftime('%Y-%m-%d %H:%M:%S')
         if 'end' not in overrides:
             overrides['end'] = date.today() + timedelta(days=30)
         if 'users_id' not in overrides:
@@ -278,7 +279,7 @@ class Glpi(object):
             for key in wrong_keys:
                 del overrides[key]
         if not overrides:
-            date_after_month = datetime.today() + timedelta(days=30)
+            date_after_month = d.today() + timedelta(days=30)
             new_date = date_after_month.strftime('%Y-%m-%d 00:00:00')
             warning(f"Setting end date to {new_date}")
             overrides['end'] = new_date
