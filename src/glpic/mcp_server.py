@@ -90,9 +90,8 @@ def update_reservation(context: Context,
 def main():
     parser = argparse.ArgumentParser(description="glpimcp")
     parser.add_argument("--port", type=int, default=8000, help="Localhost port to listen on")
-    parser.add_argument("-s", "--stdio", action='store_true')
     args = parser.parse_args()
-    parameters = {'transport': 'stdio'} if args.stdio else {'transport': 'http', 'host': '0.0.0.0', 'port': args.port}
+    parameters = {'transport': 'http', 'host': '0.0.0.0', 'port': args.port}
     mcp.run(**parameters)
 
 

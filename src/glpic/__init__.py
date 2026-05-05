@@ -213,12 +213,12 @@ class Glpi(object):
         cpu_model = overrides.get('cpumodel')
         number = overrides.get('number')
         for computer in computers:
-            current_cpu_model = computer['Computer.Item_DeviceProcessor.DeviceProcessor.designation'] or 'XXX'
+            current_cpu_model = computer.get('Computer.Item_DeviceProcessor.DeviceProcessor.designation', 'XXX')
             if isinstance(current_cpu_model, list):
                 current_cpu_model = current_cpu_model[0]
             if cpu_model is not None and cpu_model.lower() not in current_cpu_model.lower():
                 continue
-            current_memory = computer['Computer.Item_DeviceMemory.size'] or '0'
+            current_memory = computer.get('Computer.Item_DeviceMemory.size', 0)
             if memory is not None and int(float(current_memory)) < int(memory):
                 continue
             results.append(computer)
